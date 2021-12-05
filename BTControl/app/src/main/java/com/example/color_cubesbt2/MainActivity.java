@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.widget.ImageView;
@@ -44,46 +45,72 @@ public class MainActivity extends AppCompatActivity {
                     // to prevent laggy movement, when selecting color on the edges
                     if ((Color.red(pixel) == 0) && (Color.green(pixel) == 0) && (Color.blue(pixel) == 0)) {
                         // values of ColorWheel
-                        double wheelOffset = mColorWheel.getWidth()/59*11;
-                        double radius = mColorWheel.getWidth()/59*18.5;
+                        int wheelOffset = Math.round(mColorWheel.getWidth()/59*11);
+                        int radius = Math.round((float) (mColorWheel.getWidth()/59*18.5));
 
-                        // X and Y differences between circle center and touched point
-                        double centerPixelXDiff = event.getX() - (wheelOffset + radius);
-                        double centerPixelYDiff = event.getY() - (wheelOffset + radius);
+                        Point outerPoint = new Point((int) event.getX(),(int) event.getY());
+                        Point outerPointOffset = getOffsetFromWheelEdge(wheelOffset, radius, outerPoint);
 
-                        // distance to the closest point on the wheel from touched point
-                        // (we subtract radius from distance of center to touched point)
-                        double pointToWheelEdgeDistance = Math.sqrt(centerPixelXDiff*centerPixelXDiff + centerPixelYDiff*centerPixelYDiff) - radius;
-
-                        double XDiffYDiffRatio = centerPixelXDiff/centerPixelYDiff;
-
-                        // calculating x and y differences between touched point and closest edge point
-                        double xDiff = Math.sqrt(pointToWheelEdgeDistance*pointToWheelEdgeDistance*XDiffYDiffRatio*XDiffYDiffRatio/(XDiffYDiffRatio*XDiffYDiffRatio + 1));
-                        double yDiff = Math.sqrt(pointToWheelEdgeDistance*pointToWheelEdgeDistance - xDiff*xDiff);
-
-                        // adding calculated values to offset
-                        if(centerPixelXDiff < 0) {
-                            addX += xDiff;
-                        }else {
-                            addX -= xDiff;
-                        }
-
-                        if(centerPixelYDiff < 0) {
-                            addY += yDiff;
-                        }else {
-                            addY -= yDiff;
-                        }
+                        addX += outerPointOffset.x;
+                        addY += outerPointOffset.y;
                     }
 
                     // moving SelectCircle
-                    mSelectCircle.setX(event.getX() + (int)(addX));
-                    mSelectCircle.setY(event.getY() + (int)(addY));
+                    mSelectCircle.setX(event.getX() + Math.round(addX));
+                    mSelectCircle.setY(event.getY() + Math.round(addY));
+
+                    int selectedColor = bitmap.getPixel((int) mSelectCircle.getX() + mSelectCircle.getWidth()/2, (int) mSelectCircle.getY() + mSelectCircle.getHeight()/2);
+
+                    int finalColor = changeColorIntensity(selectedColor, 255);
 
                     return true;
                 }
             }
             return false;
         });
+    }
+
+    public int changeColorIntensity(int color, int newIntensity) {
+        color = Color.rgb(255,255,0);
+        int currentIntensity = Color.red(color) + Color.green(color) + Color.blue(color);
+        double oneColorPointInNewIntensity = (double)newIntensity/(double)currentIntensity;
+        int newColor = Color.rgb((int) (Color.red(color)*oneColorPointInNewIntensity), (int) (Color.green(color)*oneColorPointInNewIntensity), (int) (Color.blue(color)*oneColorPointInNewIntensity));
+        return newColor;
+    }
+
+
+    // returns x and y difference of point from edge of a circle, which center is offset + radius far from coordination field.
+    // Point object is returned
+    public Point getOffsetFromWheelEdge(double wheelOffset, double wheelRadius, Point outerPoint) {
+
+        // X and Y differences between circle center and touched point
+        double centerPixelXDiff = outerPoint.x - (wheelOffset + wheelRadius);
+        double centerPixelYDiff = outerPoint.y - (wheelOffset + wheelRadius);
+
+        // distance to the closest point on the wheel from touched point
+        // (we subtract radius from distance of center to touched point)
+        double pointToWheelEdgeDistance = Math.sqrt(centerPixelXDiff*centerPixelXDiff + centerPixelYDiff*centerPixelYDiff) - wheelRadius;
+
+        double XDiffYDiffRatio = centerPixelXDiff/centerPixelYDiff;
+
+        // calculating x and y differences between touched point and closest edge point
+        double xDiff = Math.sqrt(pointToWheelEdgeDistance*pointToWheelEdgeDistance*XDiffYDiffRatio*XDiffYDiffRatio/(XDiffYDiffRatio*XDiffYDiffRatio + 1));
+        double yDiff = Math.sqrt(pointToWheelEdgeDistance*pointToWheelEdgeDistance - xDiff*xDiff);
+
+        Point calculatedDiff = new Point(0,0);
+        // adding calculated values to offset
+        if(centerPixelXDiff < 0) {
+            calculatedDiff.x = (int) xDiff;
+        }else {
+            calculatedDiff.x = -(int) xDiff;
+        }
+
+        if(centerPixelYDiff < 0) {
+            calculatedDiff.y = (int) yDiff;
+        }else {
+            calculatedDiff.y = -(int) yDiff;
+        }
+        return calculatedDiff;
     }
 
 }
