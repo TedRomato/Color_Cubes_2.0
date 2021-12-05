@@ -4,7 +4,10 @@
 
 Adafruit_NeoPixel pixels = new Adafruit_NeoPixel(4, 6, NEO_RGB + NEO_KHZ800);
 AnalogReader analogReader(10,7,0,70,1000);
-AnalogReader analogReader2(2,7,0,50,100);
+AnalogReader analogReader2(10,7,1,70,1000);
+
+uint8_t ledsInNode = 2;
+uint8_t nodes = 2;
 
 uint16_t analogVal;
 void setup() {
@@ -15,7 +18,16 @@ void setup() {
 
 void loop() {
   analogReader.update();
-  pixels.setPixelColor(0, valueToColor(map(analogReader.getCurrentValue(), analogReader.getReadMin(), analogReader.getReadMax(), 0, 62)));
+  analogReader2.update();
+  setColorToNode(analogReader2.getCurrentValueMapped(0,nodes),valueToColor(analogReader.getCurrentValueMapped(0,62)), ledsInNode);
+}
+
+
+
+void setColorToNode(uint8_t node, uint32_t color, uint8_t ledsInNode) {
+  for(uint8_t i = 0; i < ledsInNode; i++) {
+    pixels.setPixelColor(node*ledsInNode + i, color);
+  }
   pixels.show();
 }
 
